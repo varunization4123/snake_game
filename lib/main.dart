@@ -1,4 +1,10 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+
+import 'screens/game_over_screen.dart';
+import 'utils/colors.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,103 +19,177 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.amber,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const SnakeGame(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class SnakeGame extends StatefulWidget {
+  const SnakeGame({Key? key}) : super(key: key);
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<SnakeGame> createState() => _SnakeGameState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _SnakeGameState extends State<SnakeGame> {
+  static List<int> snakePosition = [45, 65, 85, 105, 125];
+  int numberOfSquares = 680;
+  static var randomNumber = Random();
+  int foodPosition = randomNumber.nextInt(680);
 
-  void _incrementCounter() {
+  @override
+  void initState() {
+    super.initState();
+    startGame();
+  }
+
+  void getNewFood() {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      foodPosition = randomNumber.nextInt(680);
     });
+  }
+
+  void startGame() {
+    snakePosition = [45, 65, 85, 105, 125];
+    const duration = Duration(milliseconds: 300);
+    Timer.periodic(duration, (Timer timer) {
+      updateSnake();
+      if (gameOver()) {
+        timer.cancel();
+        _showGameOverScreen();
+      }
+    });
+  }
+
+  void _showGameOverScreen() {
+    Navigator.push(
+        context, MaterialPageRoute(builder: (builder) => GameOver()));
+  }
+
+  var direction = 'right';
+  void updateSnake() {
+    setState(() {
+      switch (direction) {
+        case 'down':
+          if (snakePosition.last > 680) {
+            snakePosition.add(snakePosition.last + 20 - 680);
+          } else {
+            snakePosition.add(snakePosition.last + 20);
+          }
+          break;
+        case 'up':
+          if (snakePosition.last < 20) {
+            snakePosition.add(snakePosition.last - 20 + 680);
+          } else {
+            snakePosition.add(snakePosition.last - 20);
+          }
+          break;
+        case 'right':
+          if ((snakePosition.last + 1) % 20 == 0) {
+            snakePosition.add(snakePosition.last + 1 - 20);
+          } else {
+            snakePosition.add(snakePosition.last + 1);
+          }
+          break;
+        case 'left':
+          if (snakePosition.last % 20 == 0) {
+            snakePosition.add(snakePosition.last - 1 + 20);
+          } else {
+            snakePosition.add(snakePosition.last - 1);
+          }
+          break;
+
+        default:
+      }
+
+      if (snakePosition.last == foodPosition) {
+        getNewFood();
+      } else {
+        snakePosition.removeAt(0);
+      }
+    });
+  }
+
+  bool gameOver() {
+    Map map = {};
+    for (var i in snakePosition) {
+      if (map.containsKey(i)) {
+        return true;
+      } else {
+        map[i] = 0;
+      }
+    }
+    return false;
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: background,
+        body: Column(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onVerticalDragUpdate: (details) {
+                  if (direction != 'up' && details.delta.dy > 0) {
+                    direction = 'down';
+                  } else if (direction != 'down' && details.delta.dy < 0) {
+                    direction = 'up';
+                  }
+                },
+                onHorizontalDragUpdate: (details) {
+                  if (direction != 'left' && details.delta.dx > 0) {
+                    direction = 'right';
+                  } else if (direction != 'right' && details.delta.dx < 0) {
+                    direction = 'left';
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: numberOfSquares,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 20),
+                    itemBuilder: (context, index) {
+                      if (snakePosition.contains(index)) {
+                        return Container(
+                          margin: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: snake,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        );
+                      }
+                      if (index == foodPosition) {
+                        return Container(
+                          margin: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: food,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        );
+                      }
+                      return Container(
+                        margin: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          color: grid,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
